@@ -1,12 +1,13 @@
 #![forbid(unsafe_code)]
 #![cfg_attr(not(debug_assertions), deny(warnings))] // Forbid warnings in release builds
-#![warn(clippy::all, rust_2018_idioms)]
+#![warn(clippy::all, rust_2018_idioms, future_incompatible)]
 
+mod app;
 
-// When compiling natively:
-#[cfg(not(target_arch = "wasm32"))]
+use app::TemplateApp;
+
 fn main() {
-    let app = egui_gdtf_inspector::TemplateApp::default();
+    let app = TemplateApp::default();
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(Box::new(app), native_options);
 }
