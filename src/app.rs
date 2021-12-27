@@ -1,8 +1,15 @@
-use eframe::{egui::{self, epaint::Fonts, FontDefinitions, DragValue, TextStyle}, epi};
+use std::path::PathBuf;
+
+use eframe::{
+    egui::{self, epaint::Fonts, DragValue, FontDefinitions, TextStyle},
+    epi,
+};
+use rfd::FileDialog;
 
 pub struct TemplateApp {
     label: String,
     value: f32,
+    gdtf_filename: PathBuf,
 }
 
 impl Default for TemplateApp {
@@ -10,6 +17,7 @@ impl Default for TemplateApp {
         Self {
             label: "Hello World!".to_owned(),
             value: 2.7,
+            gdtf_filename: PathBuf::new(),
         }
     }
 }
@@ -19,9 +27,14 @@ impl epi::App for TemplateApp {
         "egui GDTF Inspector"
     }
 
-    fn setup(&mut self, ctx: &egui::CtxRef, _frame: &mut epi::Frame<'_>, _storage: Option<&dyn epi::Storage>) {
+    fn setup(
+        &mut self,
+        ctx: &egui::CtxRef,
+        _frame: &mut epi::Frame<'_>,
+        _storage: Option<&dyn epi::Storage>,
+    ) {
         // Increase font sizes
-        let mut fonts =  FontDefinitions::default();
+        let mut fonts = FontDefinitions::default();
         for (key, (_family, size)) in fonts.family_and_size.iter_mut() {
             match key {
                 TextStyle::Small => *size = 16.,
@@ -37,8 +50,7 @@ impl epi::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::CtxRef, _frame: &mut epi::Frame<'_>) {
-        let Self { label: _, value } = self;
-
+        let Self { label: _, value: _, gdtf_filename } = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -48,12 +60,22 @@ impl epi::App for TemplateApp {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.with_layout(egui::Layout::left_to_right(), |ui| {
                 if ui.button("Open").clicked() {
-                    println!("{}", "Open clicked")
+                    println!("{}", "Open clicked");
+                    let files = FileDialog::new()
+                        .add_filter("GDTF", &["gdtf"])
+                        .pick_file();
+                    println!("File Picker Output: {:#?}", files);
+                    if let Some(filepath) = files {
+                        *gdtf_filename = filepath;
+                    };
                 };
 
                 ui.label("Current File: ");
 
-                ui.label("None");
+                ui.label(match gdtf_filename.to_str() {
+                    Some("") | None => "None",
+                    Some(f) => f,
+                });
 
                 if ui.button("🔄").clicked() {
                     println!("{}", "Refresh clicked");
@@ -64,19 +86,18 @@ impl epi::App for TemplateApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             // The central panel the region left after adding TopPanel's and SidePanel's
 
-            ui.heading("eframe template");
-            ui.hyperlink("https://github.com/emilk/eframe_template");
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/master/",
-                "Source code."
-            ));
-            egui::warn_if_debug_build(ui);
+            // ui.heading("eframe template");
+            // ui.hyperlink("https://github.com/emilk/eframe_template");
+            // ui.add(egui::github_link_file!(
+            //     "https://github.com/emilk/eframe_template/blob/master/",
+            //     "Source code."
+            // ));
+            // egui::warn_if_debug_build(ui);
 
-            ui.add(DragValue::new(value));
+            // ui.add(DragValue::new(value));
 
-            ui.label(format!("{:#?}", ctx.fonts().definitions().family_and_size));
-            // println!("{:#?}", ctx.fonts().definitions().family_and_size);
-
+            // ui.label(format!("{:#?}", ctx.fonts().definitions().family_and_size));
+            // // println!("{:#?}", ctx.fonts().definitions().family_and_size);
         });
     }
 }
