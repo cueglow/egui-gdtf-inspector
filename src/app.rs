@@ -1,23 +1,22 @@
 use std::path::PathBuf;
 
 use eframe::{
-    egui::{self, epaint::Fonts, DragValue, FontDefinitions, TextStyle},
+    egui::{self, FontDefinitions, TextStyle},
     epi,
 };
+use gdtf_parser::Gdtf;
 use rfd::FileDialog;
 
 pub struct TemplateApp {
-    label: String,
-    value: f32,
     gdtf_filename: PathBuf,
+    gdtf: Option<Gdtf>,
 }
 
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
-            label: "Hello World!".to_owned(),
-            value: 2.7,
             gdtf_filename: PathBuf::new(),
+            gdtf: None,
         }
     }
 }
@@ -50,7 +49,10 @@ impl epi::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
     fn update(&mut self, ctx: &egui::CtxRef, _frame: &mut epi::Frame<'_>) {
-        let Self { label: _, value: _, gdtf_filename } = self;
+        let Self {
+            gdtf_filename,
+            gdtf,
+        } = self;
 
         // Examples of how to create different panels and windows.
         // Pick whichever suits you.
@@ -61,11 +63,15 @@ impl epi::App for TemplateApp {
             ui.with_layout(egui::Layout::left_to_right(), |ui| {
                 if ui.button("Open").clicked() {
                     println!("{}", "Open clicked");
-                    let files = FileDialog::new()
-                        .add_filter("GDTF", &["gdtf"])
-                        .pick_file();
+                    let files = FileDialog::new().add_filter("GDTF", &["gdtf"]).pick_file();
                     println!("File Picker Output: {:#?}", files);
                     if let Some(filepath) = files {
+                        *gdtf = Gdtf::try_from(filepath.as_path())
+                            .or_else(|e| {
+                                println!("{:#?}", e);
+                                Err(e)
+                            })
+                            .ok();
                         *gdtf_filename = filepath;
                     };
                 };
@@ -84,6 +90,9 @@ impl epi::App for TemplateApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            egui::ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| ui.label(format!("{:#?}", gdtf)))
             // The central panel the region left after adding TopPanel's and SidePanel's
 
             // ui.heading("eframe template");
