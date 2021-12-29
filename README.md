@@ -11,11 +11,12 @@ entertainment industry.
 ## How To Build
 
 1. Install [Rust](https://www.rust-lang.org/tools/install)
-2. Clone `gdtf_parser` to a sibling folder (local dependency for ease of development):
+2. On Linux, install the GTK3 development libraries (`libgtk-3-dev` on Debian/Ubuntu and `gtk3` on arch, these are required for the [file dialog](https://github.com/PolyMeilex/rfd))
+3. Clone `gdtf_parser` to a sibling folder (local dependency for ease of development):
 ```sh
 git clone https://github.com/michaelhugi/gdtf_parser.git
 ```
-3. Clone and run
+4. Clone and run
 ```sh
 git clone https://github.com/cueglow/egui-gdtf-inspector.git
 cd egui-gdtf-inspector
