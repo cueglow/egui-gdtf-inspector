@@ -1,15 +1,21 @@
 use std::path::PathBuf;
 
 use eframe::{
-    egui::{self, FontDefinitions, TextStyle},
+    egui::{self, FontDefinitions, TextStyle, Color32},
     epi,
 };
-use gdtf_parser::Gdtf;
+use gdtf_parser::{Gdtf, utils::errors::GdtfError};
 use rfd::FileDialog;
 
+#[derive(PartialEq)]
+pub enum Section {
+    METADATA,
+    DEBUG,
+}
 pub struct TemplateApp {
     gdtf_filename: PathBuf,
-    gdtf: Option<Gdtf>,
+    gdtf: Option<Result<Gdtf, GdtfError>>,
+    selected_section: Section,
 }
 
 impl Default for TemplateApp {
@@ -17,6 +23,7 @@ impl Default for TemplateApp {
         Self {
             gdtf_filename: PathBuf::new(),
             gdtf: None,
+            selected_section: Section::METADATA,
         }
     }
 }
@@ -52,6 +59,7 @@ impl epi::App for TemplateApp {
         let Self {
             gdtf_filename,
             gdtf,
+            selected_section,
         } = self;
 
         // Examples of how to create different panels and windows.
@@ -66,47 +74,60 @@ impl epi::App for TemplateApp {
                     let files = FileDialog::new().add_filter("GDTF", &["gdtf"]).pick_file();
                     println!("File Picker Output: {:#?}", files);
                     if let Some(filepath) = files {
-                        *gdtf = Gdtf::try_from(filepath.as_path())
+                        *gdtf = Some(Gdtf::try_from(filepath.as_path())
                             .or_else(|e| {
                                 println!("{:#?}", e);
                                 Err(e)
-                            })
-                            .ok();
+                            }));
                         *gdtf_filename = filepath;
                     };
                 };
 
-                ui.label("Current File: ");
+                match gdtf_filename.to_str() {
+                    Some("") | None => ui.label(""),
+                    Some(f) => ui.label(format!("Current File: {}", f)),
+                };
+            })
+        });
 
-                ui.label(match gdtf_filename.to_str() {
-                    Some("") | None => "None",
-                    Some(f) => f,
-                });
+        egui::SidePanel::left("left_main_side_panel").show(ctx, |ui| {
+            egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
+                // only show if GDTF is opened and is not an error
+                if gdtf.as_ref().filter(|r| r.is_ok()).is_some() {
+                    ui.selectable_value(selected_section, Section::METADATA, "Metadata");
+                    ui.selectable_value(selected_section, Section::DEBUG, "Debug");
+                };
 
-                if ui.button("🔄").clicked() {
-                    println!("{}", "Refresh clicked");
-                }
+                egui::warn_if_debug_build(ui);
             })
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::ScrollArea::vertical()
                 .auto_shrink([false; 2])
-                .show(ui, |ui| ui.label(format!("{:#?}", gdtf)))
-            // The central panel the region left after adding TopPanel's and SidePanel's
+                .show(ui, |ui| {
+                    match gdtf {
+                        None => {ui.label("Please open a GDTF File");},
+                        Some(Err(e)) => {
+                            ui.colored_label(Color32::RED, "Error during Parsing");
+                            ui.label(format!("{:#?}", e));
+                        },
+                        Some(Ok(gdtf)) => {match selected_section {
+                            Section::DEBUG => {ui.label(format!("{:#?}", gdtf));}, // TODO Performance bad for large files
+                            Section::METADATA => {
+                                egui::Grid::new("metadata_grid").striped(true).show(ui, |ui| {
+                                    ui.label("Manufacturer");
+                                    ui.label(gdtf.fixture_type.manufacturer.clone());
+                                    ui.end_row();
 
-            // ui.heading("eframe template");
-            // ui.hyperlink("https://github.com/emilk/eframe_template");
-            // ui.add(egui::github_link_file!(
-            //     "https://github.com/emilk/eframe_template/blob/master/",
-            //     "Source code."
-            // ));
-            // egui::warn_if_debug_build(ui);
-
-            // ui.add(DragValue::new(value));
-
-            // ui.label(format!("{:#?}", ctx.fonts().definitions().family_and_size));
-            // // println!("{:#?}", ctx.fonts().definitions().family_and_size);
+                                    ui.label("Name");
+                                    ui.label(gdtf.fixture_type.name.0.clone());
+                                    ui.end_row();
+                                });                               
+                            }
+                        }},
+                    }
+                })
         });
     }
 }
