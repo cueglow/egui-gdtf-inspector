@@ -1,4 +1,6 @@
-use eframe::egui::{self, Ui};
+use std::hash::Hash;
+
+use eframe::egui::{self, Ui, WidgetText};
 use gdtf_parser::{DataVersion, Gdtf};
 
 pub fn metadata(ui: &mut egui::Ui, gdtf: &Gdtf) {
@@ -36,8 +38,8 @@ pub fn metadata(ui: &mut egui::Ui, gdtf: &Gdtf) {
 pub fn property_table(
     ui: &mut Ui,
     input: &[(
-        impl ToString + std::fmt::Display + std::hash::Hash,
-        impl ToString + std::fmt::Display + std::hash::Hash,
+        impl ToString + Hash,
+        impl ToString + Hash,
     )],
 ) {
     egui::Grid::new(input)
@@ -45,8 +47,8 @@ pub fn property_table(
         .max_col_width(500.)
         .show(ui, |ui| {
             for prop in input {
-                ui.label(&prop.0);
-                ui.label(&prop.1);
+                ui.label(prop.0.to_string());
+                ui.label(prop.1.to_string());
                 ui.end_row();
             }
         });

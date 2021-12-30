@@ -39,7 +39,7 @@ impl epi::App for TemplateApp {
     fn setup(
         &mut self,
         ctx: &egui::CtxRef,
-        _frame: &mut epi::Frame<'_>,
+        _frame: &epi::Frame,
         _storage: Option<&dyn epi::Storage>,
     ) {
         // Increase font sizes
@@ -56,7 +56,7 @@ impl epi::App for TemplateApp {
         ctx.set_fonts(fonts);
     }
 
-    fn update(&mut self, ctx: &egui::CtxRef, _frame: &mut epi::Frame<'_>) {
+    fn update(&mut self, ctx: &egui::CtxRef, _frame: &epi::Frame) {
         let Self {
             gdtf_filename,
             gdtf,
@@ -100,27 +100,27 @@ impl epi::App for TemplateApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            egui::ScrollArea::vertical()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    match gdtf {
-                        None => {
-                            ui.label("Please open a GDTF File");
-                        }
-                        Some(Err(e)) => {
-                            ui.colored_label(Color32::RED, "Error during Parsing");
-                            ui.label(format!("{:#?}", e));
-                        }
-                        Some(Ok(gdtf)) => {
-                            match selected_section {
-                                Section::DEBUG => {
-                                    ui.label(format!("{:#?}", gdtf));
-                                } // TODO Performance bad for large files
-                                Section::METADATA => metadata(ui, gdtf)
-                            }
-                        }
+            match gdtf {
+                None => {
+                    ui.label("Please open a GDTF File");
+                }
+                Some(Err(e)) => {
+                    ui.colored_label(Color32::RED, "Error during Parsing");
+                    ui.label(format!("{:#?}", e));
+                }
+                Some(Ok(gdtf)) => {
+                    match selected_section {
+                        Section::DEBUG => {
+                            egui::ScrollArea::vertical()
+                            .auto_shrink([false; 2])
+                            .show(ui, |ui| {
+                                ui.label(format!("{:#?}", gdtf));
+                            })
+                        } // TODO Performance bad for large files
+                        Section::METADATA => metadata(ui, gdtf)
                     }
-                })
+                }
+            }
         });
     }
 }
