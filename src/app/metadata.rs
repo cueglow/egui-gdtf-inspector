@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use eframe::egui::{self, Ui, WidgetText};
+use eframe::egui::{self, Ui};
 use gdtf_parser::{DataVersion, Gdtf};
 
 pub fn metadata(ui: &mut egui::Ui, gdtf: &Gdtf) {

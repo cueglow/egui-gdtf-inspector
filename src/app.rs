@@ -18,6 +18,7 @@ pub enum Section {
 pub struct TemplateApp {
     gdtf_filename: PathBuf,
     gdtf: Option<Result<Gdtf, GdtfError>>,
+    gdtf_debug_string: Option<Vec<String>>,
     selected_section: Section,
 }
 
@@ -26,6 +27,7 @@ impl Default for TemplateApp {
         Self {
             gdtf_filename: PathBuf::new(),
             gdtf: None,
+            gdtf_debug_string: None,
             selected_section: Section::METADATA,
         }
     }
@@ -60,6 +62,7 @@ impl epi::App for TemplateApp {
         let Self {
             gdtf_filename,
             gdtf,
+            gdtf_debug_string,
             selected_section,
         } = self;
 
@@ -74,6 +77,12 @@ impl epi::App for TemplateApp {
                             println!("{:#?}", e);
                             Err(e)
                         }));
+                        *gdtf_debug_string = Some(
+                            format!("{:#?}", gdtf)
+                                .lines()
+                                .map(|l| l.to_string())
+                                .collect(),
+                        );
                         *gdtf_filename = filepath;
                     };
                 };
@@ -99,27 +108,30 @@ impl epi::App for TemplateApp {
                 })
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            match gdtf {
-                None => {
-                    ui.label("Please open a GDTF File");
-                }
-                Some(Err(e)) => {
-                    ui.colored_label(Color32::RED, "Error during Parsing");
-                    ui.label(format!("{:#?}", e));
-                }
-                Some(Ok(gdtf)) => {
-                    match selected_section {
-                        Section::DEBUG => {
+        egui::CentralPanel::default().show(ctx, |ui| match gdtf {
+            None => {
+                ui.label("Please open a GDTF File");
+            }
+            Some(Err(e)) => {
+                ui.colored_label(Color32::RED, "Error during Parsing");
+                ui.label(format!("{:#?}", e));
+            }
+            Some(Ok(gdtf)) => {
+                match selected_section {
+                    Section::DEBUG => {
+                        let row_height = ui.fonts()[TextStyle::Body].row_height();
+                        if let Some(dbg) = gdtf_debug_string {
                             egui::ScrollArea::vertical()
-                            .auto_shrink([false; 2])
-                            .show(ui, |ui| {
-                                ui.label(format!("{:#?}", gdtf));
-                            })
-                        } // TODO Performance bad for large files
-                        Section::METADATA => metadata(ui, gdtf)
+                                .auto_shrink([false; 2])
+                                .show_rows(ui, row_height, dbg.len(), |ui, row_range| {
+                                    for row in dbg[row_range].iter() {
+                                        ui.label(row);
+                                    }
+                                });
+                        }
                     }
-                }
+                    Section::METADATA => metadata(ui, gdtf),
+                };
             }
         });
     }
