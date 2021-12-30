@@ -1,10 +1,13 @@
+mod metadata;
+use metadata::metadata;
+
 use std::path::PathBuf;
 
 use eframe::{
-    egui::{self, FontDefinitions, TextStyle, Color32},
+    egui::{self, Color32, FontDefinitions, TextStyle},
     epi,
 };
-use gdtf_parser::{Gdtf, utils::errors::GdtfError};
+use gdtf_parser::{utils::errors::GdtfError, Gdtf};
 use rfd::FileDialog;
 
 #[derive(PartialEq)]
@@ -67,11 +70,10 @@ impl epi::App for TemplateApp {
                     let files = FileDialog::new().add_filter("GDTF", &["gdtf"]).pick_file();
                     println!("File Picker Output: {:#?}", files);
                     if let Some(filepath) = files {
-                        *gdtf = Some(Gdtf::try_from(filepath.as_path())
-                            .or_else(|e| {
-                                println!("{:#?}", e);
-                                Err(e)
-                            }));
+                        *gdtf = Some(Gdtf::try_from(filepath.as_path()).or_else(|e| {
+                            println!("{:#?}", e);
+                            Err(e)
+                        }));
                         *gdtf_filename = filepath;
                     };
                 };
@@ -84,15 +86,17 @@ impl epi::App for TemplateApp {
         });
 
         egui::SidePanel::left("left_main_side_panel").show(ctx, |ui| {
-            egui::ScrollArea::vertical().auto_shrink([false; 2]).show(ui, |ui| {
-                // only show if GDTF is opened and is not an error
-                if gdtf.as_ref().filter(|r| r.is_ok()).is_some() {
-                    ui.selectable_value(selected_section, Section::METADATA, "Metadata");
-                    ui.selectable_value(selected_section, Section::DEBUG, "Debug");
-                };
+            egui::ScrollArea::vertical()
+                .auto_shrink([false; 2])
+                .show(ui, |ui| {
+                    // only show if GDTF is opened and is not an error
+                    if gdtf.as_ref().filter(|r| r.is_ok()).is_some() {
+                        ui.selectable_value(selected_section, Section::METADATA, "Metadata");
+                        ui.selectable_value(selected_section, Section::DEBUG, "Debug");
+                    };
 
-                egui::warn_if_debug_build(ui);
-            })
+                    egui::warn_if_debug_build(ui);
+                })
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -100,25 +104,21 @@ impl epi::App for TemplateApp {
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     match gdtf {
-                        None => {ui.label("Please open a GDTF File");},
+                        None => {
+                            ui.label("Please open a GDTF File");
+                        }
                         Some(Err(e)) => {
                             ui.colored_label(Color32::RED, "Error during Parsing");
                             ui.label(format!("{:#?}", e));
-                        },
-                        Some(Ok(gdtf)) => {match selected_section {
-                            Section::DEBUG => {ui.label(format!("{:#?}", gdtf));}, // TODO Performance bad for large files
-                            Section::METADATA => {
-                                egui::Grid::new("metadata_grid").striped(true).show(ui, |ui| {
-                                    ui.label("Manufacturer");
-                                    ui.label(gdtf.fixture_type.manufacturer.clone());
-                                    ui.end_row();
-
-                                    ui.label("Name");
-                                    ui.label(gdtf.fixture_type.name.0.clone());
-                                    ui.end_row();
-                                });                               
+                        }
+                        Some(Ok(gdtf)) => {
+                            match selected_section {
+                                Section::DEBUG => {
+                                    ui.label(format!("{:#?}", gdtf));
+                                } // TODO Performance bad for large files
+                                Section::METADATA => metadata(ui, gdtf)
                             }
-                        }},
+                        }
                     }
                 })
         });
