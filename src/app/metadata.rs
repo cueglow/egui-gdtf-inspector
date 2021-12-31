@@ -32,6 +32,7 @@ pub fn metadata(ui: &mut egui::Ui, gdtf: &Gdtf) {
             ("Fixture Type ID ", &guid_string(&ft.fixture_type_id)),
             ("Referenced Fixture Type", &ref_ft),
             ("Thumbnail Name", thumbnail),
+            ("Can Have Children", &format!("{:?}", &ft.can_have_children)),
         ],
     );
 }
