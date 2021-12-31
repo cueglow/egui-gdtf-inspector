@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use eframe::egui::{self, Ui};
-use gdtf_parser::{DataVersion, Gdtf};
+use gdtf_parser::{utils::units::guid::Guid, DataVersion, Gdtf};
 
 pub fn metadata(ui: &mut egui::Ui, gdtf: &Gdtf) {
     let ft = &gdtf.fixture_type;
@@ -20,28 +20,23 @@ pub fn metadata(ui: &mut egui::Ui, gdtf: &Gdtf) {
     );
 
     ui.heading("GDTF");
+    let ref_ft: String = ft
+        .ref_ft
+        .as_ref()
+        .map_or_else(|| "None".to_string(), |guid| guid_string(&guid));
+    let thumbnail = &ft.thumbnail.as_ref().map_or_else(|| "None", |t| &t.0);
     property_table(
         ui,
         &[
-            ("GDTF Version", string(&gdtf.data_version)),
-            (
-                "Fixture Type ID ",
-                match &ft.fixture_type_id.to_str().map_err(|e| e.to_string()) {
-                    Err(e) => e,
-                    Ok(s) => s,
-                },
-            ),
+            ("GDTF Version", dataversion_string(&gdtf.data_version)),
+            ("Fixture Type ID ", &guid_string(&ft.fixture_type_id)),
+            ("Referenced Fixture Type", &ref_ft),
+            ("Thumbnail Name", thumbnail),
         ],
     );
 }
 
-pub fn property_table(
-    ui: &mut Ui,
-    input: &[(
-        impl ToString + Hash,
-        impl ToString + Hash,
-    )],
-) {
+pub fn property_table(ui: &mut Ui, input: &[(impl ToString + Hash, impl ToString + Hash)]) {
     egui::Grid::new(input)
         .striped(true)
         .max_col_width(500.)
@@ -54,10 +49,17 @@ pub fn property_table(
         });
 }
 
-pub fn string(input: &DataVersion) -> &str {
+pub fn dataversion_string(input: &DataVersion) -> &str {
     match input {
         DataVersion::Version1_0 => "1.0",
         DataVersion::Version1_1 => "1.1",
         DataVersion::Unknown(str) => str,
+    }
+}
+
+pub fn guid_string(guid: &Guid) -> String {
+    match &guid.to_str().map_err(|e| e.to_string()) {
+        Err(e) => e.to_string(),
+        Ok(s) => s.to_string(),
     }
 }
